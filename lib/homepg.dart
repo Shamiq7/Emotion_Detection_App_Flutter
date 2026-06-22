@@ -102,33 +102,76 @@ class _HomepgState extends State<Homepg> {
       width: cameraImage!.width,
       height: cameraImage!.height,
     );
+
     print('image oblect created');
     print(cameraImage!.format.group);
     print('Running Model..........');
     print('plane0: ${cameraImage!.planes[0].bytes.length}');
     print('plane1: ${cameraImage!.planes[1].bytes.length}');
     print('plane2: ${cameraImage!.planes[2].bytes.length}');
-    await Future.delayed(Duration(seconds: 9));
+    print('Y bytesperRow: ${cameraImage!.planes[0].bytesPerRow}');
+    print('U bytesPerRow: ${cameraImage!.planes[1].bytesPerRow}');
+    print('v bytesPerRow: ${cameraImage!.planes[2].bytesPerRow}');
+    await Future.delayed(Duration(seconds: 5));
     print('width: ${cameraImage!.width}');
     print('height: ${cameraImage!.height}');
     print('planes: ${cameraImage!.planes.length}');
-    final y = cameraImage!.planes[0].bytes[0];
-    final u = cameraImage!.planes[1].bytes[0];
-    final v = cameraImage!.planes[2].bytes[0];
-    print('Y: $y');
-    print('U: $u');
-    print('V: $v');
-    int r = (y + 1.402 * (v - 128)).round();
-    int g = (y - 0.344136 * (u - 128) - 0.714136 * (v - 128)).round();
-    int b = (y + 1.772 * (u - 128)).round();
+    // final y = cameraImage!.planes[0].bytes[0];
+    // final u = cameraImage!.planes[1].bytes[0];
+    // final v = cameraImage!.planes[2].bytes[0];
+    // print('Y: $y');
+    // print('U: $u');
+    // print('V: $v');
+    // int r = (y + 1.402 * (v - 128)).round();
+    // int g = (y - 0.344136 * (u - 128) - 0.714136 * (v - 128)).round();
+    // int b = (y + 1.772 * (u - 128)).round();
 
-    r = r.clamp(0, 255);
-    g = g.clamp(0, 255);
-    b = b.clamp(0, 255);
+    // r = r.clamp(0, 255);
+    // g = g.clamp(0, 255);
+    // b = b.clamp(0, 255);
+    // image.setPixelRgb(0, 0, r, g, b);
+    // print('Pixel written successfully');
+    // for (int y = 0; y < 10; y++) {
+    //   for (int x = 0; x < 10; x++) {
+    //     image.setPixelRgb(x, y, r, g, b);
+    //   }
+    // }
+    // print('10x10 block written');
 
-    print('R: $r');
-    print('G: $g');
-    print('B: $b');
+    // print('R: $r');
+    // print('G: $g');
+    // print('B: $b');
+
+    // final int xval = 300;
+    // final int yval = 200;
+    for (int yval = 0; yval < 10; yval++) {
+      for (int xval = 0; xval < 10; xval++) {
+        final yValue = cameraImage!
+            .planes[0]
+            .bytes[yval * cameraImage!.planes[0].bytesPerRow + xval];
+        // print('Y at (100,100): $yValue');
+        final uvIndex =
+            (yval ~/ 2) * cameraImage!.planes[1].bytesPerRow + (xval ~/ 2);
+        final uvalue = cameraImage!.planes[1].bytes[uvIndex];
+        final vvalue = cameraImage!.planes[2].bytes[uvIndex];
+        // print('Y: $yValue');
+        // print('U: $uvalue');
+        // print('V: $vvalue');
+        int r = (yValue + 1.402 * (vvalue - 128)).round();
+        int g = (yValue - 0.344136 * (uvalue - 128) - 0.714136 * (vvalue - 128))
+            .round();
+        int b = (yValue + 1.772 * (uvalue - 128)).round();
+        r = r.clamp(0, 255);
+        g = g.clamp(0, 255);
+        b = b.clamp(0, 255);
+        image.setPixelRgb(xval, yval, r, g, b);
+
+        // print('R: $r');
+        // print('G: $g');
+        // print('B: $b');
+      }
+    }
+    print('10x10 block created');
   }
 
   // Load Image
@@ -219,7 +262,7 @@ class _HomepgState extends State<Homepg> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Face detectt'), centerTitle: true),
+      appBar: AppBar(title: Text('Face detecttt'), centerTitle: true),
       body: cameraController == null || !cameraController!.value.isInitialized
           ? const Center(child: CircularProgressIndicator())
           : CameraPreview(cameraController!),
