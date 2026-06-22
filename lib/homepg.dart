@@ -33,6 +33,7 @@ class _HomepgState extends State<Homepg> {
   String output = '';
   late Interpreter interpreter;
   bool isDetecting = false;
+  List<String> labels = ['Happy', 'Sad', 'Angry'];
 
   // Open camera
   //     ↓
@@ -97,25 +98,25 @@ class _HomepgState extends State<Homepg> {
   // Return prediction           Brain analyzes what eyes see
   Future runModel() async {
     if (cameraImage == null) return;
-    print('converting frame..........');
+    // print('converting frame..........');
     final img.Image image = img.Image(
       width: cameraImage!.width,
       height: cameraImage!.height,
     );
 
-    print('image oblect created');
+    // print('image oblect created');
     print(cameraImage!.format.group);
     print('Running Model..........');
-    print('plane0: ${cameraImage!.planes[0].bytes.length}');
-    print('plane1: ${cameraImage!.planes[1].bytes.length}');
-    print('plane2: ${cameraImage!.planes[2].bytes.length}');
-    print('Y bytesperRow: ${cameraImage!.planes[0].bytesPerRow}');
-    print('U bytesPerRow: ${cameraImage!.planes[1].bytesPerRow}');
-    print('v bytesPerRow: ${cameraImage!.planes[2].bytesPerRow}');
-    await Future.delayed(Duration(seconds: 5));
-    print('width: ${cameraImage!.width}');
-    print('height: ${cameraImage!.height}');
-    print('planes: ${cameraImage!.planes.length}');
+    // print('plane0: ${cameraImage!.planes[0].bytes.length}');
+    // print('plane1: ${cameraImage!.planes[1].bytes.length}');
+    // print('plane2: ${cameraImage!.planes[2].bytes.length}');
+    // print('Y bytesperRow: ${cameraImage!.planes[0].bytesPerRow}');
+    // print('U bytesPerRow: ${cameraImage!.planes[1].bytesPerRow}');
+    // print('v bytesPerRow: ${cameraImage!.planes[2].bytesPerRow}');
+    // // await Future.delayed(Duration(seconds: 5));
+    // print('width: ${cameraImage!.width}');
+    // print('height: ${cameraImage!.height}');
+    // print('planes: ${cameraImage!.planes.length}');
     // final y = cameraImage!.planes[0].bytes[0];
     // final u = cameraImage!.planes[1].bytes[0];
     // final v = cameraImage!.planes[2].bytes[0];
@@ -144,8 +145,8 @@ class _HomepgState extends State<Homepg> {
 
     // final int xval = 300;
     // final int yval = 200;
-    for (int yval = 0; yval < 10; yval++) {
-      for (int xval = 0; xval < 10; xval++) {
+    for (int yval = 0; yval < cameraImage!.height; yval++) {
+      for (int xval = 0; xval < cameraImage!.width; xval++) {
         final yValue = cameraImage!
             .planes[0]
             .bytes[yval * cameraImage!.planes[0].bytesPerRow + xval];
@@ -171,7 +172,51 @@ class _HomepgState extends State<Homepg> {
         // print('B: $b');
       }
     }
-    print('10x10 block created');
+    print('Full frame created');
+    print('converted image: ${image.width} x ${image.height}');
+    final resizeImage = img.copyResize(image, width: 224, height: 224);
+    print('Recized image: ${resizeImage.width} x ${resizeImage.height}');
+    var input = List.generate(
+      1,
+      (_) => List.generate(
+        224,
+        (y) => List.generate(224, (x) {
+          final pixel = resizeImage.getPixel(x, y);
+
+          return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+        }),
+      ),
+    );
+
+    print('Input tensor created');
+    print(
+      "${input.length}, ${input[0].length}, ${input[0][0].length},${input[0][0][0].length}",
+    );
+    var modelOutput = List.generate(1, (_) => List.filled(3, 0.0));
+    print('Output tensor created');
+    try {
+      interpreter.run(input, modelOutput);
+      print('model executed');
+      print(modelOutput);
+      // List<String> labels = ['Happy', 'Sad', 'Angry'];
+      var scores = modelOutput[0];
+      double maxScore = scores[0];
+      int maxIndex = 0;
+      for (int i = 1; i < scores.length; i++) {
+        if (scores[i] > maxScore) {
+          maxScore = scores[i];
+          maxIndex = i;
+        }
+      }
+      print('Emotion: ${labels[maxIndex]}');
+      print('Confidence: ${(maxScore * 100).toStringAsFixed(2)}%');
+      setState(() {
+        output =
+            '${labels[maxIndex]} (${(maxScore * 100).toStringAsFixed(2)}%)';
+      });
+    } catch (e) {
+      print('Model eroor: $e');
+    }
   }
 
   // Load Image
@@ -234,7 +279,7 @@ class _HomepgState extends State<Homepg> {
     var modeloutput = List.generate(1, (_) => List.filled(3, 0.0));
     interpreter.run(input, modeloutput);
     // print(output);
-    List<String> labels = ['Happy', 'Sad', 'Angry'];
+
     var scores = modeloutput[0];
     double maxScore = scores[0];
     int maxIndex = 0;
@@ -260,12 +305,43 @@ class _HomepgState extends State<Homepg> {
   }
 
   @override
+  void dispose() {
+    // TODO: implement dispose
+    cameraController?.dispose();
+    interpreter.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Face detecttt'), centerTitle: true),
       body: cameraController == null || !cameraController!.value.isInitialized
           ? const Center(child: CircularProgressIndicator())
-          : CameraPreview(cameraController!),
+          : Stack(
+              children: [
+                CameraPreview(cameraController!),
+                Positioned(
+                  bottom: 50,
+                  left: 20,
+                  right: 20,
+
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    color: Colors.black54,
+                    child: Text(
+                      output,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
       // Center(
       //   child: Text(
       //     output,
