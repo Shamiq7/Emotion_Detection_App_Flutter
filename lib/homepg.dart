@@ -97,6 +97,12 @@ class _HomepgState extends State<Homepg> {
   // Return prediction           Brain analyzes what eyes see
   Future runModel() async {
     if (cameraImage == null) return;
+    print('converting frame..........');
+    final img.Image image = img.Image(
+      width: cameraImage!.width,
+      height: cameraImage!.height,
+    );
+    print('image oblect created');
     print(cameraImage!.format.group);
     print('Running Model..........');
     print('plane0: ${cameraImage!.planes[0].bytes.length}');
@@ -106,6 +112,23 @@ class _HomepgState extends State<Homepg> {
     print('width: ${cameraImage!.width}');
     print('height: ${cameraImage!.height}');
     print('planes: ${cameraImage!.planes.length}');
+    final y = cameraImage!.planes[0].bytes[0];
+    final u = cameraImage!.planes[1].bytes[0];
+    final v = cameraImage!.planes[2].bytes[0];
+    print('Y: $y');
+    print('U: $u');
+    print('V: $v');
+    int r = (y + 1.402 * (v - 128)).round();
+    int g = (y - 0.344136 * (u - 128) - 0.714136 * (v - 128)).round();
+    int b = (y + 1.772 * (u - 128)).round();
+
+    r = r.clamp(0, 255);
+    g = g.clamp(0, 255);
+    b = b.clamp(0, 255);
+
+    print('R: $r');
+    print('G: $g');
+    print('B: $b');
   }
 
   // Load Image
