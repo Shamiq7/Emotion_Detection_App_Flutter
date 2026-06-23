@@ -2,7 +2,6 @@ import 'package:camera/camera.dart';
 import 'package:emotion_detechtion_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
-import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 
 //what we want to do
@@ -33,7 +32,7 @@ class _HomepgState extends State<Homepg> {
   String output = '';
   late Interpreter interpreter;
   bool isDetecting = false;
-  List<String> labels = ['Happy', 'Sad', 'Angry'];
+  List<String> labels = ['Happy', 'Sad', 'Angry', 'Neutral'];
 
   // Open camera
   //     ↓
@@ -192,7 +191,9 @@ class _HomepgState extends State<Homepg> {
     print(
       "${input.length}, ${input[0].length}, ${input[0][0].length},${input[0][0][0].length}",
     );
-    var modelOutput = List.generate(1, (_) => List.filled(3, 0.0));
+    //
+    //
+    var modelOutput = List.generate(1, (_) => List.filled(4, 0.0));
     print('Output tensor created');
     try {
       interpreter.run(input, modelOutput);
@@ -210,10 +211,19 @@ class _HomepgState extends State<Homepg> {
       }
       print('Emotion: ${labels[maxIndex]}');
       print('Confidence: ${(maxScore * 100).toStringAsFixed(2)}%');
+      String diaplayEmotion = labels[maxIndex];
+      if (diaplayEmotion == 'Angry') {
+        diaplayEmotion = 'Bhilari 💅';
+      } else if (diaplayEmotion == 'Neutral') {
+        diaplayEmotion = 'Kutiya 🌈';
+      }
       setState(() {
-        output =
-            '${labels[maxIndex]} (${(maxScore * 100).toStringAsFixed(2)}%)';
+        output = '$diaplayEmotion (${(maxScore * 100).toStringAsFixed(2)}%)';
       });
+      // setState(() {
+      //   output =
+      //       '${labels[maxIndex]} (${(maxScore * 100).toStringAsFixed(2)}%)';
+      // });
     } catch (e) {
       print('Model eroor: $e');
     }
@@ -252,49 +262,49 @@ class _HomepgState extends State<Homepg> {
   // Create output text
   //     ↓
   // Update UI
-  Future<void> testImage() async {
-    final ByteData data = await rootBundle.load(
-      'images/pic1.jpeg',
-    ); // loads/reads image from assets folder
-    final Uint8List bytes = data.buffer
-        .asUint8List(); //converts image data into raw bytes
-    img.Image image = img.decodeImage(
-      bytes,
-    )!; //converts raw bytes into an actual image object that dart can work with
-    image = img.copyResize(
-      image,
-      width: 224,
-      height: 224,
-    ); // resizes image, why 224 because we got Model input shape = [1, 224, 224, 3] so every image must be 224 x 224
-    var input = List.generate(
-      1,
-      (_) => List.generate(
-        224,
-        (y) => List.generate(224, (x) {
-          final pixel = image.getPixel(x, y);
-          return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
-        }),
-      ),
-    );
-    var modeloutput = List.generate(1, (_) => List.filled(3, 0.0));
-    interpreter.run(input, modeloutput);
-    // print(output);
+  // Future<void> testImage() async {
+  //   final ByteData data = await rootBundle.load(
+  //     'images/pic1.jpeg',
+  //   ); // loads/reads image from assets folder
+  //   final Uint8List bytes = data.buffer
+  //       .asUint8List(); //converts image data into raw bytes
+  //   img.Image image = img.decodeImage(
+  //     bytes,
+  //   )!; //converts raw bytes into an actual image object that dart can work with
+  //   image = img.copyResize(
+  //     image,
+  //     width: 224,
+  //     height: 224,
+  //   ); // resizes image, why 224 because we got Model input shape = [1, 224, 224, 3] so every image must be 224 x 224
+  //   var input = List.generate(
+  //     1,
+  //     (_) => List.generate(
+  //       224,
+  //       (y) => List.generate(224, (x) {
+  //         final pixel = image.getPixel(x, y);
+  //         return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+  //       }),
+  //     ),
+  //   );
+  //   var modeloutput = List.generate(1, (_) => List.filled(3, 0.0));
+  //   interpreter.run(input, modeloutput);
+  //   // print(output);
 
-    var scores = modeloutput[0];
-    double maxScore = scores[0];
-    int maxIndex = 0;
-    for (int i = 1; i < scores.length; i++) {
-      if (scores[i] > maxScore) {
-        maxScore = scores[i];
-        maxIndex = i;
-      }
-    }
-    // print('Emotion ${labels[maxIndex]}');
-    // print('Confidence: ${(maxScore * 100).toStringAsFixed(2)}');
-    setState(() {
-      output = '${labels[maxIndex]} (${(maxScore * 100).toStringAsFixed(2)}%)';
-    });
-  }
+  //   var scores = modeloutput[0];
+  //   double maxScore = scores[0];
+  //   int maxIndex = 0;
+  //   for (int i = 1; i < scores.length; i++) {
+  //     if (scores[i] > maxScore) {
+  //       maxScore = scores[i];
+  //       maxIndex = i;
+  //     }
+  //   }
+  //   // print('Emotion ${labels[maxIndex]}');
+  //   // print('Confidence: ${(maxScore * 100).toStringAsFixed(2)}');
+  //   setState(() {
+  //     output = '${labels[maxIndex]} (${(maxScore * 100).toStringAsFixed(2)}%)';
+  //   });
+  // }
 
   @override
   void initState() {
@@ -315,7 +325,7 @@ class _HomepgState extends State<Homepg> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Face detecttt'), centerTitle: true),
+      appBar: AppBar(title: Text('Pagal Detector'), centerTitle: true),
       body: cameraController == null || !cameraController!.value.isInitialized
           ? const Center(child: CircularProgressIndicator())
           : Stack(
